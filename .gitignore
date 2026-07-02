@@ -2,34 +2,83 @@
 __pycache__/
 *.py[cod]
 *.pyo
+*.pyd
 .venv/
 venv/
 env/
+ENV/
 *.egg-info/
 .eggs/
 dist/
 build/
+*.so
+*.dylib
+pip-log.txt
+pip-delete-this-directory.txt
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.hypothesis/
 
 # Environment & secrets
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
 
 # Databases & large binaries
 *.sqlite
 *.sqlite3
 *.db
+*.db-shm
+*.db-wal
 *.zip
 *.webp
 *.whl
+*.tar.gz
+*.tar.bz2
+*.rar
+*.7z
+*.dmg
+*.iso
+*.mp4
+*.mp3
+*.avi
+*.mov
+
+# Logs
+*.log
+logs/
+*.log.*
 
 # Node
 node_modules/
 frontend/dist/
+frontend/.next/
+frontend/out/
+.npm/
+.yarn/
+.pnp.js
+.pnp.cjs
+package-lock.json
 
 # OS
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
 # IDEs / AI tools
 .antigravity/
@@ -39,8 +88,34 @@ Thumbs.db
 .idea/
 .vscode/
 *.vsix
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.swp
+*.swo
+.claude/
 
 # Cognee local data
 .cognee_system/
 cognee_data/
 lancedb_data/
+
+# Runtime / temp
+tmp/
+temp/
+.tmp/
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# Frontend build artifacts
+frontend/build/
+frontend/.cache/
+frontend/coverage/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
