@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background-color: #e2dcd3;
+  color: #3a3730;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Scrollbar ─────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #c0b9b0; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #948e85; }
+
+/* ── Focus ─────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(79, 70, 229, 0.35);
+  outline-offset: 2px;
+}
+
+/* ── Shimmer skeleton ──────────────────────────── */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(0, 0, 0, 0.04) 50%,
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+}
+
+/* ── Bubble prose ──────────────────────────────── */
+.bubble-content p { margin: 0 0 0.4em; }
+.bubble-content p:last-child { margin: 0; }
+
+/* ── React Flow ────────────────────────────────── */
+.react-flow__background { background-color: #e9e3da !important; }
+.react-flow__attribution { display: none !important; }
+
+.react-flow__controls {
+  background: #eee8df !important;
+  border: 1px solid #c8c3b8 !important;
+  border-radius: 6px !important;
+  overflow: hidden;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+.react-flow__controls-button {
+  background: #eee8df !important;
+  border-color: #c8c3b8 !important;
+  color: #706a62 !important;
+}
+.react-flow__controls-button:hover {
+  background: #e2dcd3 !important;
+  color: #1a1815 !important;
+}
+.react-flow__minimap {
+  background: #eee8df !important;
+  border: 1px solid #c8c3b8 !important;
+  border-radius: 6px !important;
+}
+
+/* ── Table ─────────────────────────────────────── */
+.data-table th {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #706a62;
+  padding: 0 12px 8px;
+  text-align: left;
+  border-bottom: 1px solid #c8c3b8;
+}
+.data-table td {
+  padding: 8px 12px;
+  border-bottom: 1px solid #e2dcd3;
+  font-size: 13px;
+  color: #3a3730;
+}
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: #e9e3da; }

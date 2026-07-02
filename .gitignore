@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Databases & large binaries
+*.sqlite
+*.sqlite3
+*.db
+*.zip
+*.webp
+*.whl
+
+# Node
+node_modules/
+frontend/dist/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDEs / AI tools
+.antigravity/
+.codex/
+.gemini/
+.cursor/
+.idea/
+.vscode/
+*.vsix
+
+# Cognee local data
+.cognee_system/
+cognee_data/
+lancedb_data/
