@@ -146,6 +146,12 @@ def _to_node(item) -> Optional[MemoryNode]:
     )
 
 
+def _content_fingerprint(content: str) -> str:
+    """Stable hash of lowercased, whitespace-normalized content."""
+    import hashlib
+    return hashlib.md5(content.lower().split().__str__().encode()).hexdigest()
+
+
 class CogneeAdapter:
     def __init__(self):
         _configure_cognee()
@@ -154,6 +160,9 @@ class CogneeAdapter:
         self.edges: List[MemoryEdge] = []
         self.retrieval_log: List[RetrievalEvent] = []
         self._seeded = False
+        # Blacklist of forgotten content fingerprints — persists across
+        # cloud-recall cycles so forgotten memories never resurface.
+        self._forgotten_fingerprints: set = set()
 
     # ── Core interface ───────────────────────────────────────────────────
 
@@ -224,25 +233,70 @@ class CogneeAdapter:
             for item in (results or []):
                 node = _to_node(item)
                 if node and node.id not in result_map:
+                    if _content_fingerprint(node.content) in self._forgotten_fingerprints:
+                        continue  # never re-admit forgotten content
                     self.nodes.setdefault(node.id, node)
                     result_map[node.id] = node
         except Exception as e:
             print(f"[cognee.recall] {e}")
 
-        top = list(result_map.values())[:limit]
+        # Filter out anything the user has explicitly forgotten
+        filtered = {
+            nid: node for nid, node in result_map.items()
+            if _content_fingerprint(node.content) not in self._forgotten_fingerprints
+        }
+
+        top = list(filtered.values())[:limit]
         for n in top:
             n.retrieval_count += 1
             n.last_retrieved = datetime.utcnow()
         return top
 
     def forget(self, node_id: str) -> bool:
-        """Remove from shadow store. Cognee has no per-node delete in 1.2.2."""
+        """Remove from shadow store and permanently blacklist the content.
+
+        Also cascade-forgets any shadow-store nodes whose content is highly
+        similar to the forgotten one (e.g. auto-stored assistant paraphrases),
+        so the knowledge truly disappears from all recall paths.
+        """
+        import re
         node = self.nodes.get(node_id)
         if not node:
             return False
-        del self.nodes[node_id]
+
+        # Keywords from the forgotten content used for similarity cascade
+        forgotten_words = set(re.findall(r'\w+', node.content.lower())) - _STOP_WORDS
+
+        # Collect all nodes to forget: the target + high-overlap similar ones
+        to_forget = {node_id: node}
+        for nid, n in list(self.nodes.items()):
+            if nid == node_id:
+                continue
+            other_words = set(re.findall(r'\w+', n.content.lower())) - _STOP_WORDS
+            if not other_words:
+                continue
+            overlap = len(forgotten_words & other_words) / len(forgotten_words | other_words)
+            if overlap >= 0.45:  # >45% Jaccard = same topic / paraphrase
+                to_forget[nid] = n
+
+        # Blacklist all fingerprints and remove from shadow store
+        for nid, n in to_forget.items():
+            self._forgotten_fingerprints.add(_content_fingerprint(n.content))
+            self.nodes.pop(nid, None)
+
         self.edges = [e for e in self.edges
-                      if e.source != node_id and e.target != node_id]
+                      if e.source not in to_forget and e.target not in to_forget]
+
+        # Try cognee.forget() for cloud purge (best-effort, 1.2.2 API)
+        content_snapshot = node.content
+        def _bg():
+            try:
+                _run(cognee.forget(data=content_snapshot,
+                                   dataset_name=settings.cognee_dataset))
+            except Exception as e:
+                print(f"[cognee.forget] {e}")
+        threading.Thread(target=_bg, daemon=True).start()
+
         return True
 
     def improve(self, node_id: str, updates: dict) -> Optional[MemoryNode]:
