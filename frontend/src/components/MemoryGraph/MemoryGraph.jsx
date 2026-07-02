@@ -1,148 +1,247 @@
-import { useCallback, useEffect, useMemo } from 'react'
-import ReactFlow, {
-  Background, Controls, MiniMap,
-  useNodesState, useEdgesState,
-  MarkerType, BackgroundVariant, Handle, Position,
-} from 'reactflow'
-import 'reactflow/dist/style.css'
+import { useRef, useEffect, useCallback, useMemo } from 'react'
+import ForceGraph3D from 'react-force-graph'
+import * as THREE from 'three'
 
-const DISEASE_COLORS = {
-  healthy:       '#06b6d4',
-  memory_rot:    '#d97706',
-  contamination: '#dc2626',
-  fragmentation: '#64748b',
-  amnesia:       '#2563eb',
-  bias:          '#7c3aed',
+// ── Color palette ─────────────────────────────────────────────────────────────
+const DISEASE_COLOR = {
+  healthy:       '#22d3ee',
+  memory_rot:    '#f59e0b',
+  contamination: '#ef4444',
+  fragmentation: '#94a3b8',
+  amnesia:       '#3b82f6',
+  bias:          '#a855f7',
   noise:         '#71717a',
 }
 
-const EDGE_STYLES = {
-  related_to: { stroke: '#d4d4d8', strokeWidth: 1.5 },
-  updates:    { stroke: '#06b6d4', strokeWidth: 1.5 },
-  contradicts:{ stroke: '#dc2626', strokeWidth: 2,   strokeDasharray: '5 3' },
-  supports:   { stroke: '#16a34a', strokeWidth: 1.5 },
-  supersedes: { stroke: '#d97706', strokeWidth: 1.5, strokeDasharray: '4 2' },
+const EDGE_COLOR = {
+  related_to:  '#d4d4d8',
+  updates:     '#22d3ee',
+  contradicts: '#ef4444',
+  supports:    '#22c55e',
+  supersedes:  '#f59e0b',
+  REPLACED_BY: '#f97316',
 }
 
-function getNodeDisease(node, diseases) {
-  if (!diseases) return 'healthy'
+function getDisease(node, diseases) {
+  if (!diseases?.length) return 'healthy'
   for (const d of diseases) {
-    if (d.affected_node_ids.includes(node.id)) return d.type
+    if (d.affected_node_ids?.includes(node.id)) return d.type
   }
   return 'healthy'
 }
 
-function buildLayout(nodes) {
-  const subjects = {}
-  nodes.forEach((n) => {
-    const key = n.subject || 'misc'
-    if (!subjects[key]) subjects[key] = []
-    subjects[key].push(n)
-  })
-  const groups = Object.values(subjects)
-  const aStep = (2 * Math.PI) / Math.max(groups.length, 1)
-  const positions = {}
-  groups.forEach((group, gi) => {
-    const cx = Math.cos(gi * aStep) * 300 + 400
-    const cy = Math.sin(gi * aStep) * 300 + 300
-    const iStep = (2 * Math.PI) / Math.max(group.length, 1)
-    group.forEach((n, ni) => {
-      positions[n.id] = {
-        x: cx + Math.cos(ni * iStep) * (group.length > 1 ? 110 : 0),
-        y: cy + Math.sin(ni * iStep) * (group.length > 1 ? 110 : 0),
-      }
-    })
-  })
-  return positions
+// ── Three.js sphere factory (cached by color+size) ────────────────────────────
+const _geoCache = {}
+function makeSphere(r) {
+  if (!_geoCache[r]) _geoCache[r] = new THREE.SphereGeometry(r, 16, 16)
+  return _geoCache[r]
 }
 
-const MemoryNodeComponent = ({ data }) => (
-  <div>
-    <Handle type="target" position={Position.Top} style={{ background: data.color, width: 6, height: 6, border: 'none' }} />
-    <div className="text-[10px] font-medium mb-0.5 truncate" style={{ color: data.color }}>
-      {data.label.subject || data.label.type}
-    </div>
-    <div className="text-[11px] leading-snug text-zinc-700 line-clamp-2">
-      {data.label.content}
-    </div>
-    {data.label.retrieval_count > 0 && (
-      <div className="text-[9px] text-zinc-400 mt-1 font-mono">×{data.label.retrieval_count}</div>
-    )}
-    <Handle type="source" position={Position.Bottom} style={{ background: data.color, width: 6, height: 6, border: 'none' }} />
-  </div>
-)
-
-const NODE_TYPES = { memoryNode: MemoryNodeComponent }
+// ── Sprite label helper ───────────────────────────────────────────────────────
+function makeLabel(text, color) {
+  const canvas = document.createElement('canvas')
+  canvas.width = 512
+  canvas.height = 128
+  const ctx = canvas.getContext('2d')
+  ctx.clearRect(0, 0, 512, 128)
+  ctx.fillStyle = 'rgba(20,18,16,0.82)'
+  const W = 504, H = 120, R = 10
+  ctx.beginPath()
+  ctx.moveTo(R, 4); ctx.lineTo(W - R, 4)
+  ctx.quadraticCurveTo(W, 4, W, 4 + R)
+  ctx.lineTo(W, H - R); ctx.quadraticCurveTo(W, H, W - R, H)
+  ctx.lineTo(R, H); ctx.quadraticCurveTo(4, H, 4, H - R)
+  ctx.lineTo(4, 4 + R); ctx.quadraticCurveTo(4, 4, R, 4)
+  ctx.closePath()
+  ctx.fill()
+  ctx.font = 'bold 18px ui-monospace, monospace'
+  ctx.fillStyle = color
+  ctx.textAlign = 'center'
+  ctx.fillText(text.slice(0, 28), 256, 30)
+  ctx.font = '15px system-ui, sans-serif'
+  ctx.fillStyle = '#e4e4e7'
+  const words = text.split(' ')
+  let line = '', y = 58
+  for (const w of words) {
+    const test = line ? line + ' ' + w : w
+    if (ctx.measureText(test).width > 480 && line) {
+      ctx.fillText(line, 256, y); line = w; y += 22
+    } else { line = test }
+  }
+  ctx.fillText(line, 256, y)
+  const tex = new THREE.CanvasTexture(canvas)
+  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false })
+  const sprite = new THREE.Sprite(mat)
+  sprite.scale.set(40, 10, 1)
+  return sprite
+}
 
 export default function MemoryGraph({ graphData, diseases, onNodeClick }) {
+  const fgRef = useRef()
+  const labelMap = useRef({})   // node id → sprite (for cleanup)
+  const hoveredRef = useRef(null)
+
   const { nodes: rawNodes = [], edges: rawEdges = [] } = graphData
-  const positions = useMemo(() => buildLayout(rawNodes), [rawNodes])
 
-  const rfNodes = useMemo(() =>
-    rawNodes.map((n) => {
-      const disease = getNodeDisease(n, diseases)
-      const color = DISEASE_COLORS[disease] || DISEASE_COLORS.healthy
-      return {
-        id: n.id,
-        position: positions[n.id] || { x: Math.random() * 600, y: Math.random() * 400 },
-        data: { label: n, disease, color },
-        type: 'memoryNode',
-        style: {
-          background: '#eee8df',
-          border: `1px solid ${color}66`,
-          borderRadius: 6,
-          padding: '8px 12px',
-          color: '#1a1815',
-          fontSize: 12,
-          maxWidth: 180,
-          opacity: n.is_outdated ? 0.45 : 1,
-          cursor: 'pointer',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-        },
-      }
-    }), [rawNodes, diseases, positions])
+  // ── Build graph data ───────────────────────────────────────────────────────
+  const gd = useMemo(() => {
+    const nodes = rawNodes.map(n => {
+      const disease = getDisease(n, diseases)
+      const color   = DISEASE_COLOR[disease] || DISEASE_COLOR.healthy
+      const r       = 4 + Math.min(n.confidence || 0.5, 1) * 4
+                        + Math.min(n.retrieval_count || 0, 8) * 0.4
+      return { ...n, __color: color, __r: r, __disease: disease }
+    })
+    const links = rawEdges.map(e => ({
+      ...e,
+      source: e.source, target: e.target,
+      __color: EDGE_COLOR[e.relationship] || EDGE_COLOR.related_to,
+    }))
+    return { nodes, links }
+  }, [rawNodes, rawEdges, diseases])
 
-  const rfEdges = useMemo(() =>
-    rawEdges.map((e) => {
-      const style = EDGE_STYLES[e.relationship] || EDGE_STYLES.related_to
-      return {
-        id: e.id,
-        source: e.source,
-        target: e.target,
-        label: e.relationship.replace(/_/g, ' '),
-        labelStyle: { fill: '#71717a', fontSize: 9, fontFamily: 'ui-monospace' },
-        labelBgStyle: { fill: '#eee8df', fillOpacity: 0.92 },
-        style,
-        markerEnd: { type: MarkerType.ArrowClosed, color: style.stroke, width: 12, height: 12 },
-        animated: e.relationship === 'contradicts',
-      }
-    }), [rawEdges])
+  // ── Custom node object ─────────────────────────────────────────────────────
+  const nodeThreeObject = useCallback((node) => {
+    const group = new THREE.Group()
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(rfNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(rfEdges)
+    // Glow halo
+    const haloGeo = makeSphere(node.__r * 1.55)
+    const haloMat = new THREE.MeshBasicMaterial({
+      color: node.__color,
+      transparent: true,
+      opacity: 0.12,
+      side: THREE.BackSide,
+    })
+    group.add(new THREE.Mesh(haloGeo, haloMat))
 
-  useEffect(() => { setNodes(rfNodes) }, [rfNodes, setNodes])
-  useEffect(() => { setEdges(rfEdges) }, [rfEdges, setEdges])
+    // Core sphere
+    const coreMat = new THREE.MeshPhongMaterial({
+      color: node.__color,
+      emissive: node.__color,
+      emissiveIntensity: 0.35,
+      shininess: 80,
+      opacity: node.is_outdated ? 0.35 : 1,
+      transparent: node.is_outdated,
+    })
+    group.add(new THREE.Mesh(makeSphere(node.__r), coreMat))
 
-  const onNodeClickCb = useCallback((_, node) => {
-    onNodeClick?.(node.data.label)
+    // Pinned ring
+    if (node.is_pinned) {
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(node.__r * 1.3, 0.5, 8, 24),
+        new THREE.MeshBasicMaterial({ color: '#fbbf24' }),
+      )
+      ring.rotation.x = Math.PI / 2
+      group.add(ring)
+    }
+
+    return group
+  }, [])
+
+  // ── Link color ─────────────────────────────────────────────────────────────
+  const linkColor    = useCallback(link => link.__color, [])
+  const linkWidth    = useCallback(link => link.relationship === 'contradicts' ? 2.5 : 1.2, [])
+  const linkOpacity  = useCallback(link => link.relationship === 'contradicts' ? 0.9 : 0.5, [])
+
+  // ── Node label (tooltip on hover) ─────────────────────────────────────────
+  const nodeLabel = useCallback(node =>
+    `<div style="font:12px ui-monospace,monospace;background:#141210cc;color:${node.__color};
+     padding:6px 10px;border-radius:6px;max-width:260px;border:1px solid ${node.__color}44">
+      <b>${node.subject || node.type}</b><br/>
+      <span style="color:#e4e4e7;font:11px system-ui">${node.content?.slice(0, 120) || ''}</span><br/>
+      <span style="color:#71717a;font-size:10px">conf ${((node.confidence||0)*100).toFixed(0)}% · ×${node.retrieval_count||0}</span>
+    </div>`, [])
+
+  // ── Click handler ──────────────────────────────────────────────────────────
+  const onNodeClickCb = useCallback(node => {
+    onNodeClick?.(node)
+    // Zoom camera to node
+    const dist = 80
+    const { x = 0, y = 0, z = 0 } = node
+    fgRef.current?.cameraPosition(
+      { x: x + dist, y: y + dist, z: z + dist },
+      { x, y, z },
+      800,
+    )
   }, [onNodeClick])
 
+  // ── Scene setup (lights, background) ──────────────────────────────────────
+  useEffect(() => {
+    if (!fgRef.current) return
+    const scene  = fgRef.current.scene()
+    const camera = fgRef.current.camera()
+
+    // Warm ambient + directional
+    scene.add(new THREE.AmbientLight(0xffffff, 0.6))
+    const dir = new THREE.DirectionalLight(0xffffff, 1.2)
+    dir.position.set(200, 300, 200)
+    scene.add(dir)
+    const fill = new THREE.PointLight(0x8b5cf6, 0.8, 600)
+    fill.position.set(-200, -100, -200)
+    scene.add(fill)
+
+    // Subtle fog
+    scene.fog = new THREE.FogExp2(0x0c0a09, 0.004)
+    scene.background = new THREE.Color(0x0c0a09)
+
+    camera.near = 1
+    camera.updateProjectionMatrix()
+  }, [])
+
+  // ── Warm up simulation then freeze ────────────────────────────────────────
+  useEffect(() => {
+    if (!fgRef.current || !gd.nodes.length) return
+    fgRef.current.d3Force('charge')?.strength(-180)
+    fgRef.current.d3Force('link')?.distance(60)
+    setTimeout(() => fgRef.current?.d3AlphaDecay(0.04), 200)
+  }, [gd])
+
+  if (!rawNodes.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full text-center select-none gap-3">
+        <div className="text-4xl opacity-20">⬡</div>
+        <p className="text-sm text-zinc-500">No memory nodes yet</p>
+        <p className="text-xs text-zinc-400">Chat in Memory or Hybrid mode to build your graph</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="w-full h-full">
-      <ReactFlow
-        nodes={nodes} edges={edges}
-        onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
+    <div className="w-full h-full relative">
+      <ForceGraph3D
+        ref={fgRef}
+        graphData={gd}
+        nodeThreeObject={nodeThreeObject}
+        nodeThreeObjectExtend={false}
+        nodeLabel={nodeLabel}
+        linkColor={linkColor}
+        linkWidth={linkWidth}
+        linkOpacity={linkOpacity}
+        linkDirectionalArrowLength={5}
+        linkDirectionalArrowRelPos={1}
+        linkDirectionalArrowColor={linkColor}
+        linkDirectionalParticles={2}
+        linkDirectionalParticleSpeed={0.004}
+        linkDirectionalParticleColor={linkColor}
         onNodeClick={onNodeClickCb}
-        nodeTypes={NODE_TYPES}
-        fitView fitViewOptions={{ padding: 0.2 }}
-        minZoom={0.15} maxZoom={3}
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background variant={BackgroundVariant.Dots} color="#e4e4e7" gap={24} size={1} />
-        <Controls />
-        <MiniMap nodeColor={(n) => n.data?.color || '#948e85'} maskColor="#e9e3dacc" />
-      </ReactFlow>
+        backgroundColor="#0c0a09"
+        showNavInfo={false}
+      />
+
+      {/* Legend overlay */}
+      <div className="absolute bottom-4 left-4 flex flex-col gap-1 pointer-events-none">
+        {Object.entries(DISEASE_COLOR).map(([type, color]) => (
+          <div key={type} className="flex items-center gap-1.5 text-[10px] font-mono text-zinc-400">
+            <span className="w-2 h-2 rounded-full shrink-0" style={{ background: color }} />
+            {type.replace('_', ' ')}
+          </div>
+        ))}
+      </div>
+
+      {/* Node count badge */}
+      <div className="absolute top-3 right-3 text-[10px] font-mono text-zinc-500 bg-bg-card/80 px-2 py-1 rounded border border-border-dim">
+        {rawNodes.length} nodes · {rawEdges.length} edges
+      </div>
     </div>
   )
 }
