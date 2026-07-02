@@ -119,3 +119,9 @@ frontend/coverage/
 # Jupyter
 .ipynb_checkpoints/
 *.ipynb
+.agents/
+skills/
+ARCHITECTURE_BIBLE.md
+FOR_CHATGPT.md
+STRUCTURE.md
+agents/
