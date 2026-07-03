@@ -6,34 +6,34 @@ export default {
       colors: {
         /* ── Warm dim surfaces ───────────────────── */
         bg: {
-          primary:   '#e2dcd3',   // warm stone canvas — main page bg
-          secondary: '#e9e3da',   // panels, sidebar
-          card:      '#eee8df',   // card surfaces (warm off-white, not pure white)
-          hover:     '#dbd5cc',   // hover states
+          primary:   '#1c1917',   // dark warm stone — main page bg
+          secondary: '#211f1d',   // panels, sidebar
+          card:      '#28251f',   // card surfaces
+          hover:     '#2e2b25',   // hover states
         },
         accent: {
-          purple: '#4f46e5',   // indigo-600 — ONE primary accent
-          red:    '#dc2626',
-          amber:  '#d97706',
-          green:  '#16a34a',
-          blue:   '#2563eb',
+          purple: '#7c6dfa',   // softer indigo — ONE primary accent
+          red:    '#f87171',
+          amber:  '#fbbf24',
+          green:  '#4ade80',
+          blue:   '#60a5fa',
         },
         border: {
-          dim: '#c8c3b8',   // warm subtle borders
-          mid: '#b4afa4',   // warm medium borders
+          dim: '#3a3530',   // subtle dark borders
+          mid: '#4a4540',   // medium dark borders
         },
-        /* ── Warm zinc overrides (replaces cold defaults) ── */
+        /* ── Dark warm zinc ── */
         zinc: {
           50:  '#f2ede7',
-          100: '#e9e3db',
-          200: '#d8d2ca',
-          300: '#c0b9b0',
-          400: '#948e85',
-          500: '#706a62',
-          600: '#545048',
-          700: '#3a3730',
-          800: '#272521',
-          900: '#1a1815',
+          100: '#d4cfc9',
+          200: '#a89f97',
+          300: '#7d7670',
+          400: '#5c5750',
+          500: '#454039',
+          600: '#353028',
+          700: '#2a2620',
+          800: '#211e19',
+          900: '#1a1715',
         },
       },
       fontFamily: {

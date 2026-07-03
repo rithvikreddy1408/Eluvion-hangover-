@@ -2,14 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: light; }
+:root { color-scheme: dark; }
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
-  background-color: #e2dcd3;
-  color: #3a3730;
+  background-color: #1c1917;
+  color: #c4bdb6;
   font-family: 'Inter', system-ui, sans-serif;
   font-size: 13px;
   line-height: 1.5;
@@ -20,8 +20,8 @@ body {
 /* ── Scrollbar ─────────────────────────────────── */
 ::-webkit-scrollbar { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #c0b9b0; border-radius: 2px; }
-::-webkit-scrollbar-thumb:hover { background: #948e85; }
+::-webkit-scrollbar-thumb { background: #4a4540; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #5c5750; }
 
 /* ── Focus ─────────────────────────────────────── */
 :focus-visible {
@@ -46,28 +46,28 @@ body {
 .bubble-content p:last-child { margin: 0; }
 
 /* ── React Flow ────────────────────────────────── */
-.react-flow__background { background-color: #e9e3da !important; }
+.react-flow__background { background-color: #1c1917 !important; }
 .react-flow__attribution { display: none !important; }
 
 .react-flow__controls {
-  background: #eee8df !important;
-  border: 1px solid #c8c3b8 !important;
+  background: #28251f !important;
+  border: 1px solid #3a3530 !important;
   border-radius: 6px !important;
   overflow: hidden;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 }
 .react-flow__controls-button {
-  background: #eee8df !important;
-  border-color: #c8c3b8 !important;
-  color: #706a62 !important;
+  background: #28251f !important;
+  border-color: #3a3530 !important;
+  color: #7d7670 !important;
 }
 .react-flow__controls-button:hover {
-  background: #e2dcd3 !important;
-  color: #1a1815 !important;
+  background: #2e2b25 !important;
+  color: #c4bdb6 !important;
 }
 .react-flow__minimap {
-  background: #eee8df !important;
-  border: 1px solid #c8c3b8 !important;
+  background: #28251f !important;
+  border: 1px solid #3a3530 !important;
   border-radius: 6px !important;
 }
 
@@ -77,16 +77,16 @@ body {
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: #706a62;
+  color: #5c5750;
   padding: 0 12px 8px;
   text-align: left;
-  border-bottom: 1px solid #c8c3b8;
+  border-bottom: 1px solid #3a3530;
 }
 .data-table td {
   padding: 8px 12px;
-  border-bottom: 1px solid #e2dcd3;
+  border-bottom: 1px solid #28251f;
   font-size: 13px;
-  color: #3a3730;
+  color: #c4bdb6;
 }
 .data-table tr:last-child td { border-bottom: none; }
-.data-table tr:hover td { background: #e9e3da; }
+.data-table tr:hover td { background: #2e2b25; }
