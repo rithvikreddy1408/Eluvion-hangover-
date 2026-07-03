@@ -12,6 +12,7 @@
     "@reactflow/core": "^11.11.4",
     "3d-force-graph": "^1.80.0",
     "axios": "^1.7.2",
+    "force-graph": "^1.51.4",
     "framer-motion": "^11.2.12",
     "lucide-react": "^0.395.0",
     "react": "^18.3.1",
